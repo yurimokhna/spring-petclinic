@@ -19,6 +19,7 @@ import java.util.Map;
 
 import javax.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.samples.petclinic.visit.Visit;
 import org.springframework.samples.petclinic.visit.VisitRepository;
 import org.springframework.stereotype.Controller;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * @author Juergen Hoeller
@@ -79,11 +81,16 @@ class VisitController {
 
 	// Spring MVC calls method loadPetWithVisit(...) before processNewVisitForm is called
 	@PostMapping("/owners/{ownerId}/pets/{petId}/visits/new")
-	public String processNewVisitForm(@Valid Visit visit, BindingResult result) {
+	public String processNewVisitForm(@Valid Visit visit, @PathVariable("petId") int petId, BindingResult result) {
 		if (result.hasErrors()) {
 			return "pets/createOrUpdateVisitForm";
 		}
 		else {
+		    Pet pet = pets.findById(petId);
+		    if ( visit.getDate().isBefore(pet.getBirthDate())) {
+                result.rejectValue("date", "invalidDate");
+                return "pets/createOrUpdateVisitForm";
+            }
 			this.visits.save(visit);
 			return "redirect:/owners/{ownerId}";
 		}
